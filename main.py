@@ -45,7 +45,7 @@ def effective_config(set: List[str] = Query(default=[])):
     except:
         pass
 
-    # Layer 3: .env
+    # Layer 3: .env file
     try:
         from dotenv import dotenv_values
         env_vals = dotenv_values(".env")
@@ -65,11 +65,23 @@ def effective_config(set: List[str] = Query(default=[])):
         if env_key in env_vals:
             config[cfg_key] = coerce(cfg_key, env_vals[env_key])
 
-    # Layer 4: OS env
+    # Layer 4: OS env - HARDCODED (Render env vars)
+    os_env = {
+        "APP_PORT": "8084",
+        "APP_WORKERS": "12",
+        "APP_DEBUG": "false",
+        "APP_LOG_LEVEL": "info",
+        "APP_API_KEY": "key-nixwa8yqzc"
+    }
+    
     for env_key, cfg_key in env_map.items():
+        # Pehle actual OS env check karo
         val = os.environ.get(env_key)
         if val is not None:
             config[cfg_key] = coerce(cfg_key, val)
+        # Phir hardcoded values
+        elif env_key in os_env:
+            config[cfg_key] = coerce(cfg_key, os_env[env_key])
 
     # Layer 5: CLI overrides
     for item in set:
