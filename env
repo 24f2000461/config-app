@@ -1,0 +1,4 @@
+APP_PORT=8405
+APP_DEBUG=true
+APP_LOG_LEVEL=warning
+APP_API_KEY=key-v0mrub76p2

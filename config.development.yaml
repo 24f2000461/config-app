@@ -1,0 +1,3 @@
+port: 8727
+workers: 13
+log_level: error
