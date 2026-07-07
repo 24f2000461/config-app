@@ -30,6 +30,10 @@ def coerce(key, val):
         return parse_bool(val)
     return str(val)
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
 @app.get("/effective-config")
 def effective_config(set: List[str] = Query(default=[])):
     config = defaults.copy()
@@ -42,14 +46,14 @@ def effective_config(set: List[str] = Query(default=[])):
             for k, v in yaml_cfg.items():
                 if k in config:
                     config[k] = coerce(k, v)
-    except:
+    except Exception:
         pass
 
-    # Layer 3: .env file
+    # Layer 3: .env
     try:
         from dotenv import dotenv_values
         env_vals = dotenv_values(".env")
-    except:
+    except Exception:
         env_vals = {}
 
     env_map = {
@@ -65,23 +69,11 @@ def effective_config(set: List[str] = Query(default=[])):
         if env_key in env_vals:
             config[cfg_key] = coerce(cfg_key, env_vals[env_key])
 
-    # Layer 4: OS env - HARDCODED (Render env vars)
-    os_env = {
-        "APP_PORT": "8084",
-        "APP_WORKERS": "12",
-        "APP_DEBUG": "false",
-        "APP_LOG_LEVEL": "info",
-        "APP_API_KEY": "key-nixwa8yqzc"
-    }
-    
+    # Layer 4: OS env
     for env_key, cfg_key in env_map.items():
-        # Pehle actual OS env check karo
         val = os.environ.get(env_key)
         if val is not None:
             config[cfg_key] = coerce(cfg_key, val)
-        # Phir hardcoded values
-        elif env_key in os_env:
-            config[cfg_key] = coerce(cfg_key, os_env[env_key])
 
     # Layer 5: CLI overrides
     for item in set:
@@ -92,7 +84,3 @@ def effective_config(set: List[str] = Query(default=[])):
 
     config["api_key"] = "****"
     return config
-
-@app.get("/")
-def root():
-    return {"status": "ok"}
