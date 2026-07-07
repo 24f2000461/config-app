@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-import yaml, os
-from dotenv import dotenv_values
+import os
 
 app = FastAPI()
 
@@ -37,6 +36,7 @@ def effective_config(set: List[str] = Query(default=[])):
 
     # Layer 2: YAML
     try:
+        import yaml
         with open("config.development.yaml") as f:
             yaml_cfg = yaml.safe_load(f)
             for k, v in yaml_cfg.items():
@@ -45,8 +45,13 @@ def effective_config(set: List[str] = Query(default=[])):
     except:
         pass
 
-    # Layer 3: .env file
-    env_vals = dotenv_values(".env")
+    # Layer 3: .env
+    try:
+        from dotenv import dotenv_values
+        env_vals = dotenv_values(".env")
+    except:
+        env_vals = {}
+
     env_map = {
         "APP_PORT": "port",
         "APP_WORKERS": "workers",
@@ -55,24 +60,27 @@ def effective_config(set: List[str] = Query(default=[])):
         "APP_API_KEY": "api_key",
         "NUM_WORKERS": "workers"
     }
+
     for env_key, cfg_key in env_map.items():
         if env_key in env_vals:
             config[cfg_key] = coerce(cfg_key, env_vals[env_key])
 
-    # Layer 4: OS env vars
+    # Layer 4: OS env
     for env_key, cfg_key in env_map.items():
         val = os.environ.get(env_key)
         if val is not None:
             config[cfg_key] = coerce(cfg_key, val)
 
-    # Layer 5: CLI overrides (?set=key=value)
+    # Layer 5: CLI overrides
     for item in set:
         if "=" in item:
             k, v = item.split("=", 1)
             if k in config:
                 config[k] = coerce(k, v)
 
-    # Mask api_key
     config["api_key"] = "****"
-
     return config
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
